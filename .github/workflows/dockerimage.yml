@@ -15,9 +15,9 @@ on:
 env:
   repo_name_android: "siyuan-android"
   repo_name: "siyuan"
-  repo_owner: "siyuan-note"
+  repo_owner: "dockers-x"
   package_json: "app/package.json"
-  docker_hub_owner: "b3log"
+  docker_hub_owner: "czyt"
   docker_hub_repo: "siyuan"
 
 jobs:
