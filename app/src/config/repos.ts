@@ -421,7 +421,6 @@ export const repos = {
     </div>
     <span class="fn__space"></span>
     <select id="syncProvider" class="b3-select fn__flex-center fn__size200">
-        <option value="0" ${window.siyuan.config.sync.provider === 0 ? "selected" : ""}>SiYuan</option>
         <option value="2" ${window.siyuan.config.sync.provider === 2 ? "selected" : ""}>S3</option>
         <option value="3" ${window.siyuan.config.sync.provider === 3 ? "selected" : ""}>WebDAV</option>
         <option value="4" ${window.siyuan.config.sync.provider === 4 ? "selected" : ""}>${window.siyuan.languages.localFileSystem}</option>
