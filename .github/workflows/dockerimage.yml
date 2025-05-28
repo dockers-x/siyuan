@@ -4,26 +4,30 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: '镜像标签，留空则使用 package.json 中的版本号。务必注意：请确认选择了正确的分支。完整输入示例：3.0.11-rc0 '
+        description: '镜像标签,留空则使用 package.json 中的版本号。务必注意:请确认选择了正确的分支。完整输入示例:3.0.11-rc0 '
         required: true
         default: ''
   push:
     branches:
       - master
 
+permissions:
+  contents: read
+  packages: write
 # ref https://docs.github.com/zh/actions/learn-github-actions/variables
 env:
   repo_name_android: "siyuan-android"
   repo_name: "siyuan"
   repo_owner: "dockers-x"
   package_json: "app/package.json"
-  docker_hub_owner: "czyt"
+  docker_hub_owner: ${{ secrets.DOCKER_HUB_USER }}
   docker_hub_repo: "siyuan"
 
 jobs:
   build:
     name: build
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     permissions:
       packages: write
       contents: read
@@ -62,6 +66,12 @@ jobs:
 
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+          buildkitd-flags: |
+            --allow-insecure-entitlement security.insecure
+            --allow-insecure-entitlement network.host
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -69,11 +79,94 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PWD }}
 
-      - name: Build the Docker image use Workflow Dispatch inputs' version
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 先构建和推送 amd64 版本（速度最快，优先验证）
+      - name: Build and push amd64 image
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.image_tag }}" != "" ]]; then
+            IMAGE_TAG="v${{ github.event.inputs.image_tag }}"
+          else
+            IMAGE_TAG="v${{ steps.version.outputs.value }}"
+          fi
+          
+          echo "Building amd64 image with tag: $IMAGE_TAG"
+          docker buildx build \
+            --push \
+            --platform linux/amd64 \
+            --tag ${{ env.docker_hub_owner }}/${{ env.docker_hub_repo }}:${IMAGE_TAG} \
+            --tag ghcr.io/${{ github.repository_owner }}/${{ env.docker_hub_repo }}:${IMAGE_TAG} \
+            --cache-from=type=gha \
+            --cache-to=type=gha,mode=max \
+            .
+
+      # 构建 arm64 版本
+      - name: Build and push arm64 image
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.image_tag }}" != "" ]]; then
+            IMAGE_TAG="v${{ github.event.inputs.image_tag }}"
+          else
+            IMAGE_TAG="v${{ steps.version.outputs.value }}"
+          fi
+          
+          echo "Building arm64 image with tag: $IMAGE_TAG"
+          docker buildx build \
+            --push \
+            --platform linux/arm64 \
+            --tag ${{ env.docker_hub_owner }}/${{ env.docker_hub_repo }}:${IMAGE_TAG} \
+            --tag ghcr.io/${{ github.repository_owner }}/${{ env.docker_hub_repo }}:${IMAGE_TAG} \
+            --cache-from=type=gha \
+            --cache-to=type=gha,mode=max \
+            .
+
+
+      # 创建并推送多架构 manifest
+      - name: Create and push multi-arch manifest for workflow dispatch
         if: ${{ github.event_name == 'workflow_dispatch' && !github.event.inputs.image_tag == '' }}
         run: |
-          docker buildx build --push --platform linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v8 -t ${{ env.docker_hub_owner }}/${{ env.docker_hub_repo }}:latest -t ${{ env.docker_hub_owner }}/${{ env.docker_hub_repo }}:v${{ github.event.inputs.image_tag }} .
-      - name: Build the Docker image use package_json version
+          IMAGE_TAG="v${{ github.event.inputs.image_tag }}"
+          
+          # 创建 latest tag manifest
+          docker buildx imagetools create -t ${{ env.docker_hub_owner }}/${{ env.docker_hub_repo }}:latest \
+            ${{ env.docker_hub_owner }}/${{ env.docker_hub_repo }}:${IMAGE_TAG}
+          
+          # 创建版本 tag manifest
+          docker buildx imagetools create -t ghcr.io/${{ github.repository_owner }}/${{ env.docker_hub_repo }}:latest \
+           ghcr.io/${{ github.repository_owner }}/${{ env.docker_hub_repo }}:${IMAGE_TAG} 
+
+      # 创建并推送多架构 manifest for push event
+      - name: Create and push multi-arch manifest for push event
         if: ${{ github.event_name == 'push' || github.event.inputs.image_tag == '' }}
         run: |
-          docker buildx build --push --platform linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v8 -t ${{ env.docker_hub_owner }}/${{ env.docker_hub_repo }}:latest -t ${{ env.docker_hub_owner }}/${{ env.docker_hub_repo }}:v${{ steps.version.outputs.value }} .
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            IMAGE_TAG="v${{ github.event.inputs.image_tag }}"
+          else
+            IMAGE_TAG="v${{ steps.version.outputs.value }}"
+          fi
+          
+          # 创建 latest tag manifest
+          docker buildx imagetools create -t ${{ env.docker_hub_owner }}/${{ env.docker_hub_repo }}:latest \
+            ${{ env.docker_hub_owner }}/${{ env.docker_hub_repo }}:${IMAGE_TAG}
+          
+          # 创建版本 tag manifest
+          docker buildx imagetools create -t ghcr.io/${{ github.repository_owner }}/${{ env.docker_hub_repo }}:latest \
+           ghcr.io/${{ github.repository_owner }}/${{ env.docker_hub_repo }}:${IMAGE_TAG} 
+
+      # 清理临时标签
+      - name: Cleanup temporary tags
+        if: always()
+        continue-on-error: true
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.image_tag }}" != "" ]]; then
+            IMAGE_TAG="v${{ github.event.inputs.image_tag }}"
+          else
+            IMAGE_TAG="v${{ steps.version.outputs.value }}"
+          fi
+          
+          echo "Cleaning up temporary tags..."
