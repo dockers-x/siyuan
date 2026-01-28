@@ -1,0 +1,12 @@
+# Ignore build artifacts
+siyuan/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

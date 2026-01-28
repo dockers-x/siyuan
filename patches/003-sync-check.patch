@@ -1,0 +1,20 @@
+From: czyt <czytcn@gmail.com>
+Subject: Add sync config check before sync guide
+
+This patch adds a check to show message if sync is not enabled.
+
+diff --git a/app/src/sync/syncGuide.ts b/app/src/sync/syncGuide.ts
+--- a/app/src/sync/syncGuide.ts
++++ b/app/src/sync/syncGuide.ts
+@@ -148,6 +148,11 @@ export const syncGuide = (app?: App) => {
+     if (window.siyuan.config.readonly) {
+         return;
+     }
++
++    if (!window.siyuan.config.sync.enabled) {
++        showMessage(`${window.siyuan.languages.cloudConfigTip}`);
++        return;
++    }
+     /// #if MOBILE
+     if (0 === window.siyuan.config.sync.provider) {
+         if (needSubscribe()) {

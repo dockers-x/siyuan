@@ -1,0 +1,54 @@
+From: czyt <czytcn@gmail.com>
+Subject: Disable account UI and hide official sync option
+
+This patch:
+- Disables VIP display in account settings
+- Removes account entry from settings menu
+- Removes SiYuan official sync option from sync provider dropdown
+- Comments out account menu on mobile
+
+diff --git a/app/src/config/account.ts b/app/src/config/account.ts
+--- a/app/src/config/account.ts
++++ b/app/src/config/account.ts
+@@ -479,6 +479,7 @@ ${renewHTML}<div class="fn__hr--b"></div>`;
+         if (window.siyuan.config.system.container === "ios") {
+             return;
+         }
++        return;
+         let html = "";
+         if (window.siyuan.config.account.displayVIP) {
+             if (window.siyuan.user) {
+diff --git a/app/src/config/index.ts b/app/src/config/index.ts
+--- a/app/src/config/index.ts
++++ b/app/src/config/index.ts
+@@ -126,7 +126,6 @@ export const openSetting = (app: App) => {
+     <li data-name="bazaar" class="b3-list-item${isHuawei() || isInHarmony() ? " fn__none" : ""}"><svg class="b3-list-item__graphic"><use xlink:href="#iconBazaar"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.bazaar}</span></li>
+     <li data-name="search" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconSearch"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.search}</span></li>
+     <li data-name="keymap" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconKeymap"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.keymap}</span></li>
+-    <li data-name="account" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconAccount"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.account}</span></li>
+     <li data-name="repos" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconCloud"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.cloud}</span></li>
+     <li data-name="publish" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconLanguage"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.publish}</span></li>
+     <li data-name="about" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconInfo"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.about}</span></li>
+diff --git a/app/src/config/repos.ts b/app/src/config/repos.ts
+--- a/app/src/config/repos.ts
++++ b/app/src/config/repos.ts
+@@ -421,7 +421,6 @@ export const repos = {
+     </div>
+     <span class="fn__space"></span>
+     <select id="syncProvider" class="b3-select fn__flex-center fn__size200">
+-        <option value="0" ${window.siyuan.config.sync.provider === 0 ? "selected" : ""}>SiYuan</option>
+         <option value="2" ${window.siyuan.config.sync.provider === 2 ? "selected" : ""}>S3</option>
+         <option value="3" ${window.siyuan.config.sync.provider === 3 ? "selected" : ""}>WebDAV</option>
+         <option value="4" ${window.siyuan.config.sync.provider === 4 ? "selected" : ""}>${window.siyuan.languages.localFileSystem}</option>
+diff --git a/app/src/mobile/menu/index.ts b/app/src/mobile/menu/index.ts
+--- a/app/src/mobile/menu/index.ts
++++ b/app/src/mobile/menu/index.ts
+@@ -64,7 +64,7 @@ export const initRightMenu = (app: App) => {
+     <span class="b3-menu__label">${window.siyuan.languages.back}</span>
+ </div>
+ <div class="b3-menu__items">
+-    ${accountHTML}
++    // ${accountHTML}
+     <div id="menuRecent" class="b3-menu__item">
+         <svg class="b3-menu__icon"><use xlink:href="#iconList"></use></svg><span class="b3-menu__label">${window.siyuan.languages.recentDocs}</span>
+     </div>

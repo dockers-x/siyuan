@@ -1,0 +1,141 @@
+name: Release Docker Image
+
+on:
+  schedule:
+    # 每周二和周五的12点（UTC时间）
+    - cron: "0 12 * * 2,5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  UPSTREAM_REPO: siyuan-note/siyuan
+  docker_hub_repo: siyuan
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - name: Checkout patches repo
+        uses: actions/checkout@v4
+        with:
+          path: patches-repo
+
+      - name: Get latest upstream release
+        id: upstream
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/${{ env.UPSTREAM_REPO }}/releases/latest | jq -r .tag_name)
+          echo "version=$LATEST" >> $GITHUB_OUTPUT
+          echo "Latest upstream version: $LATEST"
+
+      - name: Check if version already built
+        id: check
+        run: |
+          VERSION=${{ steps.upstream.outputs.version }}
+
+          # Check if this version tag already exists in Docker Hub
+          TOKEN=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${{ secrets.DOCKERHUB_USERNAME }}/${{ env.docker_hub_repo }}:pull" | jq -r .token)
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $TOKEN" \
+            "https://registry-1.docker.io/v2/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.docker_hub_repo }}/manifests/$VERSION")
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Version $VERSION already exists in Docker Hub, skipping build"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "Will build version $VERSION"
+          fi
+
+      - name: Clone upstream and apply patches
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          VERSION=${{ steps.upstream.outputs.version }}
+          git clone --branch $VERSION --depth=1 https://github.com/${{ env.UPSTREAM_REPO }}.git siyuan
+          cd siyuan
+
+          echo "Applying patches..."
+          for patch in ${{ github.workspace }}/patches-repo/patches/*.patch; do
+            if [ -f "$patch" ]; then
+              echo "Applying: $(basename $patch)"
+              git apply "$patch" || echo "Warning: Failed to apply $patch"
+            fi
+          done
+
+          git status
+
+      - name: Free Disk Space (Ubuntu)
+        if: steps.check.outputs.skip != 'true'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Set up QEMU
+        if: steps.check.outputs.skip != 'true'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker buildx
+        if: steps.check.outputs.skip != 'true'
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+          buildkitd-flags: |
+            --allow-insecure-entitlement security.insecure
+            --allow-insecure-entitlement network.host
+
+      - name: Log in to Docker Hub
+        if: steps.check.outputs.skip != 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        if: steps.check.outputs.skip != 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push multi-arch image
+        if: steps.check.outputs.skip != 'true'
+        working-directory: siyuan
+        run: |
+          IMAGE_TAG="${{ steps.upstream.outputs.version }}"
+
+          echo "Building multi-arch image with tag: $IMAGE_TAG"
+          docker buildx build \
+            --push \
+            --platform linux/amd64,linux/arm64 \
+            --tag ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.docker_hub_repo }}:${IMAGE_TAG} \
+            --tag ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.docker_hub_repo }}:latest \
+            --tag ghcr.io/${{ github.repository_owner }}/${{ env.docker_hub_repo }}:${IMAGE_TAG} \
+            --tag ghcr.io/${{ github.repository_owner }}/${{ env.docker_hub_repo }}:latest \
+            --cache-from=type=gha \
+            --cache-to=type=gha,mode=max \
+            .
+
+      - name: Verify multi-arch build
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          IMAGE_TAG="${{ steps.upstream.outputs.version }}"
+          echo "Verifying multi-arch manifest for ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.docker_hub_repo }}:${IMAGE_TAG}"
+          docker buildx imagetools inspect ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.docker_hub_repo }}:${IMAGE_TAG}
