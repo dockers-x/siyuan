@@ -1,8 +1,9 @@
 # SiYuan Docker Patch
 
-自动构建定制版 SiYuan Docker 镜像。
+自动构建定制版 SiYuan Docker 镜像,去除了云账号相关内容,去除需要登陆才能使用s3和webdav同步的思源笔记版本。
 
-## 功能
+
+## Patch
 
 Patches 包含:
 - **001-mock-vip-user.patch**: `isPaidUser` 始终返回 true (启用 S3/WebDAV 同步)
