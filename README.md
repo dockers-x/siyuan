@@ -1,6 +1,6 @@
 # SiYuan Docker Patch
 
-自动构建定制版 SiYuan Docker 镜像,去除了云账号相关内容,去除需要登陆才能使用s3和webdav同步的思源笔记版本。
+自动构建定制版 [SiYuan](https://github.com/siyuan-note/siyuan) Docker 镜像,去除了云账号相关内容,去除需要登陆才能使用s3和webdav同步的思源笔记版本。
 
 
 ## Patch
