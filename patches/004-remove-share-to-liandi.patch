@@ -4,9 +4,10 @@ Subject: Remove share to Liandi community feature
 This patch removes the "Share to Liandi" menu item from breadcrumb.
 
 diff --git a/app/src/protyle/breadcrumb/index.ts b/app/src/protyle/breadcrumb/index.ts
+index 3e8a6347e..d67be0809 100644
 --- a/app/src/protyle/breadcrumb/index.ts
 +++ b/app/src/protyle/breadcrumb/index.ts
-@@ -368,19 +368,6 @@ ${padHTML}
+@@ -375,19 +375,6 @@ ${padHTML}
                          }
                      }
                  }).element);

@@ -4,24 +4,27 @@ Subject: Mock VIP user - always return true for isPaidUser
 This patch makes isPaidUser always return true in both frontend and backend.
 
 diff --git a/app/src/util/needSubscribe.ts b/app/src/util/needSubscribe.ts
+index 8681b9e84..bd92e6e5e 100644
 --- a/app/src/util/needSubscribe.ts
 +++ b/app/src/util/needSubscribe.ts
-@@ -18,5 +18,6 @@ export const needSubscribe = (tip = window.siyuan.languages._kernel[29]) => {
- };
-
+@@ -20,5 +20,6 @@ export const needSubscribe = (tip = window.siyuan.languages._kernel[29]) => {
+  * 判断是否可以使用第三方同步
+  */
  export const isPaidUser = () => {
 -    return window.siyuan.user && (0 === window.siyuan.user.userSiYuanSubscriptionStatus || 1 === window.siyuan.user.userSiYuanOneTimePayStatus);
 +    return true;
-+    //return window.siyuan.user && (0 === window.siyuan.user.userSiYuanSubscriptionStatus || 1 === window.siyuan.user.userSiYuanOneTimePayStatus);
++    // return window.siyuan.user && (0 === window.siyuan.user.userSiYuanSubscriptionStatus || 1 === window.siyuan.user.userSiYuanOneTimePayStatus);
  };
 diff --git a/kernel/model/conf.go b/kernel/model/conf.go
+index 30bed1a92..bd292644b 100644
 --- a/kernel/model/conf.go
 +++ b/kernel/model/conf.go
-@@ -879,6 +879,7 @@ func IsSubscriber() bool {
+@@ -1111,6 +1111,8 @@ func IsSubscriber() bool {
  }
-
+ 
  func IsPaidUser() bool {
 +	return true
- 	// S3/WebDAV data sync and backup are available for a fee https://github.com/siyuan-note/siyuan/issues/8780
-
++
  	if IsSubscriber() {
+ 		return true
+ 	}

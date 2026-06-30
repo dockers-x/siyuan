@@ -3,52 +3,83 @@ Subject: Disable account UI and hide official sync option
 
 This patch:
 - Disables VIP display in account settings
-- Removes account entry from settings menu
+- Hides account settings in the sync tab
 - Removes SiYuan official sync option from sync provider dropdown
-- Comments out account menu on mobile
 
-diff --git a/app/src/config/account.ts b/app/src/config/account.ts
---- a/app/src/config/account.ts
-+++ b/app/src/config/account.ts
-@@ -479,6 +479,7 @@ ${renewHTML}<div class="fn__hr--b"></div>`;
-         if (window.siyuan.config.system.container === "ios") {
-             return;
-         }
-+        return;
-         let html = "";
-         if (window.siyuan.config.account.displayVIP) {
-             if (window.siyuan.user) {
-diff --git a/app/src/config/index.ts b/app/src/config/index.ts
---- a/app/src/config/index.ts
-+++ b/app/src/config/index.ts
-@@ -126,7 +126,6 @@ export const openSetting = (app: App) => {
-     <li data-name="bazaar" class="b3-list-item${isHuawei() || isInHarmony() ? " fn__none" : ""}"><svg class="b3-list-item__graphic"><use xlink:href="#iconBazaar"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.bazaar}</span></li>
-     <li data-name="search" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconSearch"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.search}</span></li>
-     <li data-name="keymap" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconKeymap"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.keymap}</span></li>
--    <li data-name="account" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconAccount"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.account}</span></li>
-     <li data-name="repos" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconCloud"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.cloud}</span></li>
-     <li data-name="publish" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconLanguage"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.publish}</span></li>
-     <li data-name="about" class="b3-list-item"><svg class="b3-list-item__graphic"><use xlink:href="#iconInfo"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.about}</span></li>
-diff --git a/app/src/config/repos.ts b/app/src/config/repos.ts
---- a/app/src/config/repos.ts
-+++ b/app/src/config/repos.ts
-@@ -421,7 +421,6 @@ export const repos = {
-     </div>
-     <span class="fn__space"></span>
-     <select id="syncProvider" class="b3-select fn__flex-center fn__size200">
--        <option value="0" ${window.siyuan.config.sync.provider === 0 ? "selected" : ""}>SiYuan</option>
-         <option value="2" ${window.siyuan.config.sync.provider === 2 ? "selected" : ""}>S3</option>
-         <option value="3" ${window.siyuan.config.sync.provider === 3 ? "selected" : ""}>WebDAV</option>
-         <option value="4" ${window.siyuan.config.sync.provider === 4 ? "selected" : ""}>${window.siyuan.languages.localFileSystem}</option>
-diff --git a/app/src/mobile/menu/index.ts b/app/src/mobile/menu/index.ts
---- a/app/src/mobile/menu/index.ts
-+++ b/app/src/mobile/menu/index.ts
-@@ -64,7 +64,7 @@ export const initRightMenu = (app: App) => {
-     <span class="b3-menu__label">${window.siyuan.languages.back}</span>
- </div>
- <div class="b3-menu__items">
--    ${accountHTML}
-+    // ${accountHTML}
-     <div id="menuRecent" class="b3-menu__item">
-         <svg class="b3-menu__icon"><use xlink:href="#iconList"></use></svg><span class="b3-menu__label">${window.siyuan.languages.recentDocs}</span>
-     </div>
+diff --git a/app/src/config/tabs/accountUi.ts b/app/src/config/tabs/accountUi.ts
+index 3df34513e..65f6257e0 100644
+--- a/app/src/config/tabs/accountUi.ts
++++ b/app/src/config/tabs/accountUi.ts
+@@ -494,44 +494,11 @@ const renderAccount = (accountSettingsRoot: Element) => {
+     bindAccountPaymentEvent(accountSettingsRoot);
+ };
+ 
+-const genVIPIconHTML = (className = "") =>
+-    `<svg${className ? ` class="${className}"` : ""}><use xlink:href="#iconVIP"></use></svg>`;
+-
+-const genToolbarItemHTML = (ariaLabel: string, svg: string) =>
+-    `<div class="toolbar__item ariaLabel" aria-label="${ariaLabel}">${svg}</div>`;
+-
+ export const onSetaccount = () => {
+     /// #if !MOBILE
+     const toolbarVIPEl = document.getElementById("toolbarVIP");
+-    if (!toolbarVIPEl) {
+-        return;
++    if (toolbarVIPEl) {
++        toolbarVIPEl.innerHTML = "";
+     }
+-    if (!window.siyuan.user || window.siyuan.user.userSiYuanSubscriptionStatus === -1) {
+-        toolbarVIPEl.innerHTML = window.siyuan.config.account.displayVIP ? genToolbarItemHTML(window.siyuan.languages.freeSub, genVIPIconHTML("ft__error")) : "";
+-        return;
+-    }
+-    const parts: string[] = [];
+-    if (window.siyuan.config.account.displayVIP) {
+-        if (window.siyuan.user.userSiYuanProExpireTime === -1) {
+-            parts.push(genToolbarItemHTML(window.siyuan.languages.account12, Constants.SIYUAN_IMAGE_VIP));
+-        } else if (window.siyuan.user.userSiYuanProExpireTime > 0) {
+-            if (window.siyuan.user.userSiYuanSubscriptionPlan === 2) {
+-                parts.push(genToolbarItemHTML(window.siyuan.languages.account3, genVIPIconHTML()));
+-            } else {
+-                parts.push(genToolbarItemHTML(window.siyuan.languages.account10, genVIPIconHTML("ft__secondary")));
+-            }
+-        } else if (window.siyuan.user.userSiYuanSubscriptionStatus === 2) {
+-            parts.push(genToolbarItemHTML(window.siyuan.languages.accountSubscriptionExpired, genVIPIconHTML("ft__error")));
+-        }
+-        if (window.siyuan.user.userSiYuanOneTimePayStatus === 1) {
+-            parts.push(genToolbarItemHTML(window.siyuan.languages.onepay, genVIPIconHTML("ft__success")));
+-        }
+-    }
+-    if (window.siyuan.config.account.displayTitle) {
+-        window.siyuan.user.userTitles.forEach(item => {
+-            parts.push(genToolbarItemHTML(`${item.name}：${item.desc}`, item.icon));
+-        });
+-    }
+-    toolbarVIPEl.innerHTML = parts.join("");
+     /// #endif
+ };
+diff --git a/app/src/config/tabs/syncTab.ts b/app/src/config/tabs/syncTab.ts
+index 1f0960b42..769ea0d5b 100644
+--- a/app/src/config/tabs/syncTab.ts
++++ b/app/src/config/tabs/syncTab.ts
+@@ -1,5 +1,4 @@
+ import type {SettingTabBuilder} from "../setting/builder";
+-import {registerAccountGroup} from "./accountUi";
+ import {Constants} from "../../constants";
+ import {fetchPost} from "../../util/fetch";
+ import {confirmDialog} from "../../dialog/confirmDialog";
+@@ -20,7 +19,6 @@ const registerSyncGroup = (tab: SettingTabBuilder) => {
+         title: window.siyuan.languages.syncProvider,
+         desc: window.siyuan.languages.syncProviderTip,
+         options: [
+-            {value: 0, label: "SiYuan"},
+             {value: 2, label: "S3"},
+             {value: 3, label: "WebDAV"},
+             ...(["std", "docker"].includes(window.siyuan.config.system.container) ? [{value: 4, label: window.siyuan.languages.localFileSystem}] : []),
+@@ -263,7 +261,6 @@ const mountRepoKey = (root: HTMLElement) => {
+ };
+ 
+ export const registerSyncTab = (tab: SettingTabBuilder) => {
+-    registerAccountGroup(tab);
+     registerSyncGroup(tab);
+     registerRepoGroup(tab);
+ };
