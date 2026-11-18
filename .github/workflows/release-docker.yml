@@ -102,16 +102,19 @@ jobs:
 
           # Add GitHub token auth for onnxruntime download
           echo "Adding GitHub token auth for onnxruntime..."
-          sed -i 's/^ARG ONNX_VERSION$/ARG ONNX_VERSION\nARG GITHUB_TOKEN/' Dockerfile
-          sed -i '/git config remote.origin.partialclonefilter blob:none/a\
-# Use GitHub Token auth to fix network issues\
-if [ -n "${GITHUB_TOKEN}" ]; then\
-    git config remote.origin.url "https://${GITHUB_TOKEN}@github.com/microsoft/onnxruntime"\
-fi' Dockerfile
 
-          echo "Dockerfile modified:"
-          grep -A2 "ARG ONNX_VERSION" Dockerfile
-          grep -A4 "GITHUB_TOKEN" Dockerfile | head -10
+          # Insert ARG GITHUB_TOKEN after ARG ONNX_VERSION
+          sed -i '/^ARG ONNX_VERSION$/a ARG GITHUB_TOKEN' Dockerfile
+
+          # Create token auth lines using printf
+          AUTH_LINES=$'# Use GitHub Token auth to fix network issues\\nif [ -n "${GITHUB_TOKEN}" ]; then\\n    git config remote.origin.url "https://${GITHUB_TOKEN}@github.com/microsoft/onnxruntime"\\nfi'
+
+          # Insert after the partialclonefilter line
+          sed -i "/git config remote.origin.partialclonefilter blob:none/a\\${AUTH_LINES}" Dockerfile
+
+          echo "=== Dockerfile onnx-source section ==="
+          grep -n -A5 "ARG ONNX_VERSION" Dockerfile
+          grep -n -B1 -A5 "GITHUB_TOKEN" Dockerfile | head -20
 
       - name: Free Disk Space (Ubuntu)
         if: steps.check.outputs.skip != 'true'
