@@ -153,6 +153,7 @@ jobs:
           docker buildx build \
             --push \
             --platform linux/amd64,linux/arm64 \
+            --build-arg GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
             --tag ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.docker_hub_repo }}:${IMAGE_TAG} \
             --tag ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.docker_hub_repo }}:latest \
             --tag ghcr.io/${{ github.repository_owner }}/${{ env.docker_hub_repo }}:${IMAGE_TAG} \
