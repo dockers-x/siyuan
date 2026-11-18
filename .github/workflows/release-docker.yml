@@ -1,9 +1,6 @@
 name: Release Docker Image
 
 on:
-  push:
-    branches:
-      - main
   schedule:
     # 每周二和周五的12点（UTC时间）
     - cron: "0 12 * * 2,5"
