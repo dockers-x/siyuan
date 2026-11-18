@@ -4,10 +4,10 @@ Subject: Add sync config check before sync guide
 This patch adds a check to show message if sync is not enabled.
 
 diff --git a/app/src/sync/syncGuide.ts b/app/src/sync/syncGuide.ts
-index b0c12a377..57675a957 100644
+index baa991e..0e54f1f 100644
 --- a/app/src/sync/syncGuide.ts
 +++ b/app/src/sync/syncGuide.ts
-@@ -156,6 +156,10 @@ export const syncGuide = (app?: App) => {
+@@ -233,6 +233,10 @@ export const syncGuide = (app?: App) => {
      if (app && document.querySelector("#barSync")?.classList.contains("toolbar__item--active")) {
          return;
      }
@@ -16,5 +16,5 @@ index b0c12a377..57675a957 100644
 +        return;
 +    }
      if (window.siyuan.config.sync.provider === 0 && needSubscribe()) {
-         /// #if !MOBILE
-         if (app) {
+         openSyncSetting(app);
+         showMessage(window.siyuan.languages._kernel[29].replaceAll("${accountServer}", getCloudURL("")));

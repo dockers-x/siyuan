@@ -10,6 +10,7 @@ Patches 包含:
 - **002-disable-account-ui.patch**: 隐藏账户设置，移除思源官方同步选项
 - **003-sync-check.patch**: 同步前检查配置
 - **004-remove-share-to-liandi.patch**: 移除分享到链滴社区功能
+- **005-reuse-upstream-onnx.patch**: 从同版本的官方 Docker 镜像复用 ONNX Runtime 库及许可文件
 
 ## Workflow
 
@@ -17,6 +18,7 @@ Patches 包含:
 - **手动触发**: 在 GitHub Actions 点击 "Run workflow" 即可
 - 自动检测最新上游版本
 - 如果版本已存在则跳过构建
+- 构建依赖 `b3log/siyuan` 发布同版本的 amd64 / arm64 镜像；通过摘要锁定依赖，不回退到 `latest`
 
 ## 设置
 

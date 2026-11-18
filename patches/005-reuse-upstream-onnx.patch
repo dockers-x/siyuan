@@ -1,0 +1,16 @@
+diff --git a/Dockerfile b/Dockerfile
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -144,7 +144,11 @@ ARG TARGETARCH
+ RUN --mount=type=cache,target=/root/.cache/go-build \
+     mkdir -p /ocr/linux-${TARGETARCH} \
+     && go build -trimpath -ldflags "-s -w" -o /ocr/linux-${TARGETARCH}/siyuan-ocr ./ocr/cmd/ocr-worker
+-COPY --from=onnx-runtime /onnx-artifacts/ /ocr/linux-${TARGETARCH}/
++COPY --from=onnx-runtime \
++    /opt/siyuan/stage/ocr/runtime/linux-${TARGETARCH}/libonnxruntime.so \
++    /opt/siyuan/stage/ocr/runtime/linux-${TARGETARCH}/LICENSE \
++    /opt/siyuan/stage/ocr/runtime/linux-${TARGETARCH}/ThirdPartyNotices.txt \
++    /opt/siyuan/stage/ocr/runtime/linux-${TARGETARCH}/onnx-toolchain.txt /ocr/linux-${TARGETARCH}/
+
+ FROM ${ALPINE_IMAGE}
+ LABEL maintainer="Liang Ding<845765@qq.com>"

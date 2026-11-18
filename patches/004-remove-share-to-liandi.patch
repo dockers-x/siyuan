@@ -4,26 +4,37 @@ Subject: Remove share to Liandi community feature
 This patch removes the "Share to Liandi" menu item from breadcrumb.
 
 diff --git a/app/src/protyle/breadcrumb/index.ts b/app/src/protyle/breadcrumb/index.ts
-index 3e8a6347e..d67be0809 100644
+index 4c79c44..7d9c09d 100644
 --- a/app/src/protyle/breadcrumb/index.ts
 +++ b/app/src/protyle/breadcrumb/index.ts
-@@ -375,19 +375,6 @@ ${padHTML}
-                         }
-                     }
-                 }).element);
--                if (window.siyuan.user) { // 登录链滴账号后即可使用 `分享到链滴` https://github.com/siyuan-note/siyuan/issues/7392
--                    window.siyuan.menus.menu.append(new MenuItem({
--                        id: "share2Liandi",
--                        label: window.siyuan.languages.share2Liandi,
--                        icon: "iconLiandi",
--                        click() {
--                            confirmDialog("🤩 " + window.siyuan.languages.share2Liandi,
--                                window.siyuan.languages.share2LiandiConfirmTip.replace("${accountServer}", getCloudURL("")), () => {
--                                    fetchPost("/api/export/export2Liandi", {id: protyle.block.parentID});
--                                });
+@@ -39,7 +39,6 @@ import {getGlobalBreadcrumb, isBreadcrumbNotebookAvailable, type GlobalBreadcrum
+ import {getBreadcrumbCustomIcon} from "./icon";
+ import {listIndent, listOutdent} from "../wysiwyg/list";
+ import {improveBreadcrumbAppearance} from "./appearance";
+-import {getCloudURL} from "../../config/util/about";
+ import {decodeHTML, escapeAttr, escapeAriaLabel, escapeHtml, escapeSearchHighlight} from "../../util/escape";
+ import {refreshUndoButtons} from "../undo/globalUndo";
+ import {getAllEditor} from "../../layout/getAll";
+@@ -1067,22 +1066,6 @@ ${isMobile() ? `<button class="block__icon fn__flex-center ariaLabel" data-type=
+                                 }
+                             }
+                         }).element);
+-                        if (window.siyuan.user && getHostCapabilities().importExport) { // 登录链滴账号后即可使用 `分享到链滴` https://github.com/siyuan-note/siyuan/issues/7392
+-                            window.siyuan.menus.menu.append(new MenuItem({
+-                                id: "share2Liandi",
+-                                label: window.siyuan.languages.share2Liandi,
+-                                icon: "iconLiandi",
+-                                click() {
+-                                    if (!getHostCapabilities().importExport) {
+-                                        return;
+-                                    }
+-                                    mobileConfirmDialog("🤩 " + window.siyuan.languages.share2Liandi,
+-                                        window.siyuan.languages.share2LiandiConfirmTip.replace("${accountServer}", getCloudURL("")), () => {
+-                                            fetchPost("/api/export/export2Liandi", {id: protyle.block.parentID});
+-                                        });
+-                                }
+-                            }).element);
 -                        }
--                    }).element);
--                }
-             }
-             if (!protyle.scroll?.element.classList.contains("fn__none")) {
-                 window.siyuan.menus.menu.append(new MenuItem({
+                     }
+                     if (!protyle.scroll?.element.classList.contains("fn__none")) {
+                         if (hasUnloadedDocumentBlocks(protyle.wysiwyg.element, true)) {

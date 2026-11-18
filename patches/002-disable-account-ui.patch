@@ -7,77 +7,96 @@ This patch:
 - Removes SiYuan official sync option from sync provider dropdown
 
 diff --git a/app/src/config/tabs/accountUi.ts b/app/src/config/tabs/accountUi.ts
-index 3df34513e..65f6257e0 100644
+index 2d941f4..fface82 100644
 --- a/app/src/config/tabs/accountUi.ts
 +++ b/app/src/config/tabs/accountUi.ts
-@@ -494,44 +494,11 @@ const renderAccount = (accountSettingsRoot: Element) => {
-     bindAccountPaymentEvent(accountSettingsRoot);
+@@ -615,12 +615,6 @@ export const applyCloudUserState = (user: TCloudUser | null, userName = "", acco
+     }
  };
- 
+
 -const genVIPIconHTML = (className = "") =>
 -    `<svg${className ? ` class="${className}"` : ""}><use xlink:href="#iconVIP"></use></svg>`;
 -
 -const genToolbarItemHTML = (ariaLabel: string, svg: string) =>
 -    `<div class="toolbar__item ariaLabel" aria-label="${ariaLabel}">${svg}</div>`;
 -
- export const onSetaccount = () => {
+ const setToolbarItems = (element: HTMLElement, parts: string[]) => {
+     element.innerHTML = parts.join("");
+     if (parts.length === 0) {
+@@ -634,48 +628,12 @@ export const onSetaccount = () => {
      /// #if !MOBILE
      const toolbarVIPEl = document.getElementById("toolbarVIP");
--    if (!toolbarVIPEl) {
--        return;
-+    if (toolbarVIPEl) {
-+        toolbarVIPEl.innerHTML = "";
-     }
--    if (!window.siyuan.user || window.siyuan.user.userSiYuanSubscriptionStatus === -1) {
--        toolbarVIPEl.innerHTML = window.siyuan.config.account.displayVIP ? genToolbarItemHTML(window.siyuan.languages.freeSub, genVIPIconHTML("ft__error")) : "";
--        return;
--    }
--    const parts: string[] = [];
--    if (window.siyuan.config.account.displayVIP) {
--        if (window.siyuan.user.userSiYuanProExpireTime === -1) {
--            parts.push(genToolbarItemHTML(window.siyuan.languages.account12, Constants.SIYUAN_IMAGE_VIP));
--        } else if (window.siyuan.user.userSiYuanProExpireTime > 0) {
--            if (window.siyuan.user.userSiYuanSubscriptionPlan === 2) {
--                parts.push(genToolbarItemHTML(window.siyuan.languages.account3, genVIPIconHTML()));
--            } else {
--                parts.push(genToolbarItemHTML(window.siyuan.languages.account10, genVIPIconHTML("ft__secondary")));
+     if (toolbarVIPEl) {
+-        const parts: string[] = [];
+-        if (!window.siyuan.user) {
+-            // 未登录
+-            parts.push(genToolbarItemHTML(window.siyuan.languages.freeSub, genVIPIconHTML("ft__error")));
+-        } else {
+-            const isOneTimePay = window.siyuan.user.userSiYuanOneTimePayStatus === 1;
+-            if (window.siyuan.user.userSiYuanProExpireTime === -1) {
+-                // 终身会员
+-                parts.push(genToolbarItemHTML(window.siyuan.languages.account12, Constants.SIYUAN_IMAGE_VIP));
+-            } else if (window.siyuan.user.userSiYuanProExpireTime > 0) {
+-                // 订阅有效（未过期）
+-                if (window.siyuan.user.userSiYuanSubscriptionPlan === 2) {
+-                    // 试用订阅
+-                    parts.push(genToolbarItemHTML(window.siyuan.languages.account3, genVIPIconHTML()));
+-                } else {
+-                    // 付费订阅
+-                    parts.push(genToolbarItemHTML(window.siyuan.languages.account10, genVIPIconHTML("ft__secondary")));
+-                }
+-            } else if (window.siyuan.user.userSiYuanSubscriptionStatus === 2 && !isOneTimePay) {
+-                // 订阅过期
+-                parts.push(genToolbarItemHTML(window.siyuan.languages.accountSubscriptionExpired, genVIPIconHTML("ft__error")));
+-            } else if (window.siyuan.user.userSiYuanSubscriptionStatus === -1 && !isOneTimePay) {
+-                // 未订阅过
+-                parts.push(genToolbarItemHTML(window.siyuan.languages.freeSub, genVIPIconHTML("ft__error")));
 -            }
--        } else if (window.siyuan.user.userSiYuanSubscriptionStatus === 2) {
--            parts.push(genToolbarItemHTML(window.siyuan.languages.accountSubscriptionExpired, genVIPIconHTML("ft__error")));
+-            if (isOneTimePay) {
+-                // 功能特性已付费
+-                parts.push(genToolbarItemHTML(window.siyuan.languages.onepay, genVIPIconHTML("ft__success")));
+-            }
 -        }
--        if (window.siyuan.user.userSiYuanOneTimePayStatus === 1) {
--            parts.push(genToolbarItemHTML(window.siyuan.languages.onepay, genVIPIconHTML("ft__success")));
+-        setToolbarItems(toolbarVIPEl, parts);
++        setToolbarItems(toolbarVIPEl, []);
+     }
+
+     const toolbarTitleEl = document.getElementById("toolbarTitle");
+     if (toolbarTitleEl) {
+-        const parts: string[] = [];
+-        if (window.siyuan.user) {
+-            window.siyuan.user.userTitles.forEach(item => {
+-                parts.push(genToolbarItemHTML(`${item.name}：${item.desc}`, item.icon));
+-            });
 -        }
--    }
--    if (window.siyuan.config.account.displayTitle) {
--        window.siyuan.user.userTitles.forEach(item => {
--            parts.push(genToolbarItemHTML(`${item.name}：${item.desc}`, item.icon));
--        });
--    }
--    toolbarVIPEl.innerHTML = parts.join("");
+-        setToolbarItems(toolbarTitleEl, parts);
++        setToolbarItems(toolbarTitleEl, []);
+     }
+     window.dispatchEvent(new CustomEvent("siyuan-topbar-change"));
      /// #endif
- };
 diff --git a/app/src/config/tabs/syncTab.ts b/app/src/config/tabs/syncTab.ts
-index 1f0960b42..769ea0d5b 100644
+index 5022abe..00a2cdd 100644
 --- a/app/src/config/tabs/syncTab.ts
 +++ b/app/src/config/tabs/syncTab.ts
-@@ -1,5 +1,4 @@
+@@ -1,7 +1,6 @@
+ import {mobileInputDialog} from "../../dialog/mobileInputDialog";
+ import {mobileConfirmDialog} from "../../dialog/mobileConfirmDialog";
  import type {SettingTabBuilder} from "../setting/builder";
 -import {registerAccountGroup} from "./accountUi";
  import {Constants} from "../../constants";
- import {fetchPost} from "../../util/fetch";
- import {confirmDialog} from "../../dialog/confirmDialog";
-@@ -20,7 +19,6 @@ const registerSyncGroup = (tab: SettingTabBuilder) => {
-         title: window.siyuan.languages.syncProvider,
+ import {fetchPost, fetchSyncPost} from "../../util/fetch";
+ import {showMessage} from "../../dialog/message";
+@@ -74,7 +73,6 @@ const registerSyncGroup = (tab: SettingTabBuilder) => {
          desc: window.siyuan.languages.syncProviderTip,
+         afterMount: mountSyncProvider,
          options: [
 -            {value: 0, label: "SiYuan"},
              {value: 2, label: "S3"},
              {value: 3, label: "WebDAV"},
              ...(["std", "docker"].includes(window.siyuan.config.system.container) ? [{value: 4, label: window.siyuan.languages.localFileSystem}] : []),
-@@ -263,7 +261,6 @@ const mountRepoKey = (root: HTMLElement) => {
+@@ -344,7 +342,6 @@ const mountRepoKey = (root: HTMLElement) => {
  };
- 
+
  export const registerSyncTab = (tab: SettingTabBuilder) => {
 -    registerAccountGroup(tab);
      registerSyncGroup(tab);
