@@ -100,22 +100,6 @@ jobs:
             fi
           done
 
-          # Add GitHub token auth for onnxruntime download
-          echo "Adding GitHub token auth for onnxruntime..."
-
-          # Insert ARG GITHUB_TOKEN after ARG ONNX_VERSION
-          sed -i '/^ARG ONNX_VERSION$/a ARG GITHUB_TOKEN' Dockerfile
-
-          # Create token auth lines using printf
-          AUTH_LINES=$'# Use GitHub Token auth to fix network issues\\nif [ -n "${GITHUB_TOKEN}" ]; then\\n    git config remote.origin.url "https://${GITHUB_TOKEN}@github.com/microsoft/onnxruntime"\\nfi'
-
-          # Insert after the partialclonefilter line
-          sed -i "/git config remote.origin.partialclonefilter blob:none/a\\${AUTH_LINES}" Dockerfile
-
-          echo "=== Dockerfile onnx-source section ==="
-          grep -n -A5 "ARG ONNX_VERSION" Dockerfile
-          grep -n -B1 -A5 "GITHUB_TOKEN" Dockerfile | head -20
-
       - name: Free Disk Space (Ubuntu)
         if: steps.check.outputs.skip != 'true'
         uses: jlumbroso/free-disk-space@main
@@ -135,12 +119,6 @@ jobs:
       - name: Setup Docker buildx
         if: steps.check.outputs.skip != 'true'
         uses: docker/setup-buildx-action@v4
-        with:
-          driver-opts: |
-            network=host
-          buildkitd-flags: |
-            --allow-insecure-entitlement security.insecure
-            --allow-insecure-entitlement network.host
 
       - name: Log in to Docker Hub
         if: steps.check.outputs.skip != 'true'
@@ -167,7 +145,6 @@ jobs:
           docker buildx build \
             --push \
             --platform linux/amd64,linux/arm64 \
-            --build-arg GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
             --tag ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.docker_hub_repo }}:${IMAGE_TAG} \
             --tag ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.docker_hub_repo }}:latest \
             --tag ghcr.io/${{ github.repository_owner }}/${{ env.docker_hub_repo }}:${IMAGE_TAG} \
