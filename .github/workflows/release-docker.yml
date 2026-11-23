@@ -32,18 +32,6 @@ jobs:
           path: patches-repo
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Record workflow execution start
-        run: |
-          mkdir -p .workflows
-          echo "Workflow execution started" >> .workflows/execution.log
-          echo "Time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> .workflows/execution.log
-          echo "Trigger: ${{ github.event_name }}" >> .workflows/execution.log
-          echo "Run ID: ${{ github.run_id }}" >> .workflows/execution.log
-          echo "Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> .workflows/execution.log
-          echo "Actor: ${{ github.actor }}" >> .workflows/execution.log
-          echo "---" >> .workflows/execution.log
-          cat .workflows/execution.log
-
       - name: Get latest upstream release
         id: upstream
         run: |
@@ -78,13 +66,6 @@ jobs:
             echo "skip=false" >> $GITHUB_OUTPUT
             echo "Will build version $VERSION"
           fi
-
-          # Record version check result
-          echo "" >> .workflows/execution.log
-          echo "Version check completed" >> .workflows/execution.log
-          echo "Latest upstream version: $VERSION" >> .workflows/execution.log
-          echo "Build needed: $([ "$HTTP_CODE" != "200" ] && echo 'yes' || echo 'no')" >> .workflows/execution.log
-          echo "---" >> .workflows/execution.log
 
       - name: Clone upstream and apply patches
         if: steps.check.outputs.skip != 'true'
@@ -178,47 +159,27 @@ jobs:
           echo "Verifying multi-arch manifest for ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.docker_hub_repo }}:${IMAGE_TAG}"
           docker buildx imagetools inspect ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.docker_hub_repo }}:${IMAGE_TAG}
 
-      - name: Record build skipped
-        if: steps.check.outputs.skip == 'true'
+      - name: Record published release
+        if: steps.check.outputs.skip == 'false' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        working-directory: patches-repo
+        env:
+          VERSION: ${{ steps.upstream.outputs.version }}
         run: |
-          echo "" >> .workflows/execution.log
-          echo "Build skipped (version already exists)" >> .workflows/execution.log
-          echo "Skipped version: ${{ steps.upstream.outputs.version }}" >> .workflows/execution.log
-          echo "End time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> .workflows/execution.log
-          echo "=== END ===" >> .workflows/execution.log
+          git fetch --no-tags origin "$GITHUB_REF"
+          git switch --detach FETCH_HEAD
 
-      - name: Record workflow completion
-        if: steps.check.outputs.skip != 'true'
-        run: |
-          echo "" >> .workflows/execution.log
-          echo "Build completed successfully" >> .workflows/execution.log
-          echo "End time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> .workflows/execution.log
-          echo "Built version: ${{ steps.upstream.outputs.version }}" >> .workflows/execution.log
-          echo "=== END ===" >> .workflows/execution.log
+          RECORD=.workflows/last-release.json
+          if [ -f "$RECORD" ] && jq -e --arg version "$VERSION" '.version == $version' "$RECORD" > /dev/null; then
+            echo "Release $VERSION is already recorded"
+            exit 0
+          fi
 
-      - name: Commit workflow execution log
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add .workflows/execution.log
-          git diff --cached --stat
-          git commit -m "ci: record workflow execution - $(date -u '+%Y-%m-%d %H:%M:%S UTC')" || echo "No changes to commit"
-        continue-on-error: true
-
-      - name: Push execution log
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
-        continue-on-error: true
-
-      - name: Record workflow failure
-        if: failure()
-        run: |
-          echo "" >> .workflows/execution.log
-          echo "!!! BUILD FAILED !!!" >> .workflows/execution.log
-          echo "Failed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> .workflows/execution.log
-          echo "Version: ${{ steps.upstream.outputs.version }}" >> .workflows/execution.log
-          echo "Error: Check workflow logs for details" >> .workflows/execution.log
-          echo "=== END ===" >> .workflows/execution.log
-        continue-on-error: true
+          mkdir -p .workflows
+          jq -n --arg version "$VERSION" \
+            --arg published_at "$(date -u +%FT%TZ)" \
+            --arg run_url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{version: $version, published_at: $published_at, run_url: $run_url}' > "$RECORD"
+          git add -- "$RECORD"
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m "ci: record Docker release $VERSION"
+          git push origin "HEAD:$GITHUB_REF"

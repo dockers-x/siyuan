@@ -7,10 +7,10 @@ This patch:
 - Removes SiYuan official sync option from sync provider dropdown
 
 diff --git a/app/src/config/tabs/accountUi.ts b/app/src/config/tabs/accountUi.ts
-index 2d941f4..fface82 100644
+index a94ec3f..f7124d6 100644
 --- a/app/src/config/tabs/accountUi.ts
 +++ b/app/src/config/tabs/accountUi.ts
-@@ -615,12 +615,6 @@ export const applyCloudUserState = (user: TCloudUser | null, userName = "", acco
+@@ -619,12 +619,6 @@ export const applyCloudUserState = (user: TCloudUser | null, userName = "", acco
      }
  };
 
@@ -23,7 +23,7 @@ index 2d941f4..fface82 100644
  const setToolbarItems = (element: HTMLElement, parts: string[]) => {
      element.innerHTML = parts.join("");
      if (parts.length === 0) {
-@@ -634,48 +628,12 @@ export const onSetaccount = () => {
+@@ -638,48 +632,12 @@ export const onSetaccount = () => {
      /// #if !MOBILE
      const toolbarVIPEl = document.getElementById("toolbarVIP");
      if (toolbarVIPEl) {
@@ -75,12 +75,12 @@ index 2d941f4..fface82 100644
      window.dispatchEvent(new CustomEvent("siyuan-topbar-change"));
      /// #endif
 diff --git a/app/src/config/tabs/syncTab.ts b/app/src/config/tabs/syncTab.ts
-index 5022abe..00a2cdd 100644
+index e6d182e..d66f52c 100644
 --- a/app/src/config/tabs/syncTab.ts
 +++ b/app/src/config/tabs/syncTab.ts
 @@ -1,7 +1,6 @@
- import {mobileInputDialog} from "../../dialog/mobileInputDialog";
- import {mobileConfirmDialog} from "../../dialog/mobileConfirmDialog";
+ import {openInputDialog} from "../../dialog/inputDialog";
+ import {confirmDialog} from "../../dialog/confirmDialog";
  import type {SettingTabBuilder} from "../setting/builder";
 -import {registerAccountGroup} from "./accountUi";
  import {Constants} from "../../constants";
@@ -94,7 +94,7 @@ index 5022abe..00a2cdd 100644
              {value: 2, label: "S3"},
              {value: 3, label: "WebDAV"},
              ...(["std", "docker"].includes(window.siyuan.config.system.container) ? [{value: 4, label: window.siyuan.languages.localFileSystem}] : []),
-@@ -344,7 +342,6 @@ const mountRepoKey = (root: HTMLElement) => {
+@@ -360,7 +358,6 @@ const mountRepoKey = (root: HTMLElement) => {
  };
 
  export const registerSyncTab = (tab: SettingTabBuilder) => {

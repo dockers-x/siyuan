@@ -4,7 +4,7 @@ Subject: Remove share to Liandi community feature
 This patch removes the "Share to Liandi" menu item from breadcrumb.
 
 diff --git a/app/src/protyle/breadcrumb/index.ts b/app/src/protyle/breadcrumb/index.ts
-index 4c79c44..7d9c09d 100644
+index 2bbb578..22138e9 100644
 --- a/app/src/protyle/breadcrumb/index.ts
 +++ b/app/src/protyle/breadcrumb/index.ts
 @@ -39,7 +39,6 @@ import {getGlobalBreadcrumb, isBreadcrumbNotebookAvailable, type GlobalBreadcrum
@@ -15,7 +15,7 @@ index 4c79c44..7d9c09d 100644
  import {decodeHTML, escapeAttr, escapeAriaLabel, escapeHtml, escapeSearchHighlight} from "../../util/escape";
  import {refreshUndoButtons} from "../undo/globalUndo";
  import {getAllEditor} from "../../layout/getAll";
-@@ -1067,22 +1066,6 @@ ${isMobile() ? `<button class="block__icon fn__flex-center ariaLabel" data-type=
+@@ -1078,25 +1077,6 @@ ${isMobile() ? `<button class="block__icon fn__flex-center ariaLabel" data-type=
                                  }
                              }
                          }).element);
@@ -28,10 +28,13 @@ index 4c79c44..7d9c09d 100644
 -                                    if (!getHostCapabilities().importExport) {
 -                                        return;
 -                                    }
--                                    mobileConfirmDialog("🤩 " + window.siyuan.languages.share2Liandi,
--                                        window.siyuan.languages.share2LiandiConfirmTip.replace("${accountServer}", getCloudURL("")), () => {
+-                                    confirmDialog({
+-                                        title: "🤩 " + window.siyuan.languages.share2Liandi,
+-                                        text: window.siyuan.languages.share2LiandiConfirmTip.replace("${accountServer}", getCloudURL("")),
+-                                        confirm: () => {
 -                                            fetchPost("/api/export/export2Liandi", {id: protyle.block.parentID});
--                                        });
+-                                        },
+-                                    });
 -                                }
 -                            }).element);
 -                        }
